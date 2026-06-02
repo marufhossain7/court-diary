@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Maruf's Court Diary</title>
+  <title>Maruf's Court Diary — Case Scheduler</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
   <style>
@@ -670,13 +670,7 @@ function selectQuick(days, el){
 }
 
 function onCustomDateChange(){
-  const c=cases.find(x=>x.id===viewingId); if(!c||!c.nextDate) return;
-  const picked=document.getElementById('reminderCustomDate').value;
-  if(!picked) return;
-  const hearingDate=new Date(c.nextDate+'T00:00:00');
-  const reminderDate=new Date(picked+'T00:00:00');
-  const diff=Math.round((hearingDate-reminderDate)/(1000*60*60*24));
-  selDays=diff>=0?diff:0;
+  // শুধু preview update করে — selDays কে -1 রাখে (custom mode বোঝাতে)
   updatePreview();
 }
 
@@ -684,12 +678,14 @@ function updatePreview(){
   const c=cases.find(x=>x.id===viewingId); if(!c||!c.nextDate) return;
   const t=document.getElementById('reminderTime').value||'08:00';
   let rd, lbl;
-  if(selDays===-1||selDays===null){
+  if(selDays===-1){
+    // Custom mode — date input থেকে নাও
     rd=document.getElementById('reminderCustomDate').value;
     if(!rd) return;
     const diff=Math.round((new Date(c.nextDate+'T00:00:00')-new Date(rd+'T00:00:00'))/(1000*60*60*24));
-    lbl=diff===0?'Hearing এর দিন':`Hearing এর ${diff} দিন আগে`;
+    lbl=diff<=0?'Hearing এর দিন':`Hearing এর ${diff} দিন আগে`;
   } else {
+    // Quick mode — hearing date থেকে calculate করো
     rd=subtractDays(c.nextDate,selDays);
     lbl=selDays===0?'Hearing এর দিন':`Hearing এর ${selDays} দিন আগে`;
   }
@@ -700,13 +696,16 @@ function updatePreview(){
 
 function saveReminder(){
   const c=cases.find(x=>x.id===viewingId); if(!c||!c.nextDate) return;
-  if(selDays===null){toast('আগে কতদিন আগে তা select করুন');return;}
-  let finalDays=selDays;
+  if(selDays===null){toast('আগে option select করুন');return;}
+  let finalDays;
   if(selDays===-1){
+    // Custom date mode
     const picked=document.getElementById('reminderCustomDate').value;
-    if(!picked){toast('Date select করুন');return;}
+    if(!picked){toast('Calendar থেকে date বেছে নিন');return;}
     const diff=Math.round((new Date(c.nextDate+'T00:00:00')-new Date(picked+'T00:00:00'))/(1000*60*60*24));
     finalDays=diff>=0?diff:0;
+  } else {
+    finalDays=selDays;
   }
   const t=document.getElementById('reminderTime').value||'08:00';
   reminders[viewingId]={daysBefore:finalDays,time:t,triggered:null}; saveRem();
