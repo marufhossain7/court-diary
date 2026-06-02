@@ -196,37 +196,24 @@
         <span id="rci_date"></span>
       </div>
 
-      <!-- Quick options -->
-      <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px">দ্রুত সেট করুন:</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
-        <div class="reminder-opt" data-days="0" onclick="selectQuick(0)"><span class="emoji">📅</span>Same Day</div>
-        <div class="reminder-opt" data-days="1" onclick="selectQuick(1)"><span class="emoji">🌙</span>১ দিন আগে</div>
-        <div class="reminder-opt" data-days="2" onclick="selectQuick(2)"><span class="emoji">📆</span>২ দিন আগে</div>
-        <div class="reminder-opt" data-days="3" onclick="selectQuick(3)"><span class="emoji">🗓️</span>৩ দিন আগে</div>
-        <div class="reminder-opt" data-days="7" onclick="selectQuick(7)"><span class="emoji">📋</span>১ সপ্তাহ আগে</div>
-        <div class="reminder-opt" data-days="15" onclick="selectQuick(15)"><span class="emoji">🗂️</span>১৫ দিন আগে</div>
+      <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px">কতদিন আগে?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+        <div class="reminder-opt" data-days="0" onclick="selectQuick(0,this)">Same Day</div>
+        <div class="reminder-opt" data-days="1" onclick="selectQuick(1,this)">১ দিন আগে</div>
+        <div class="reminder-opt" data-days="2" onclick="selectQuick(2,this)">২ দিন আগে</div>
+        <div class="reminder-opt" data-days="-1" onclick="selectQuick(-1,this)">⚙ Custom Date</div>
       </div>
 
-      <!-- Divider -->
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <div style="flex:1;height:1px;background:#e6ecf8"></div>
-        <span style="font-size:11px;color:var(--muted);font-weight:600">অথবা নিজে date বেছে নিন</span>
-        <div style="flex:1;height:1px;background:#e6ecf8"></div>
+      <div id="customDateRow" style="display:none;margin-bottom:12px">
+        <label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">📅 Calendar থেকে Date বেছে নিন:</label>
+        <input type="date" id="reminderCustomDate" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid #e6ecf8;font-size:14px;box-sizing:border-box" onchange="onCustomDateChange()"/>
       </div>
 
-      <!-- Custom date picker -->
-      <div style="margin-bottom:10px">
-        <label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">📅 Reminder Date:</label>
-        <input type="date" id="reminderCustomDate" style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6ecf8;font-size:14px;box-sizing:border-box" onchange="onCustomDateChange()"/>
-      </div>
-
-      <!-- Time picker -->
       <div style="margin-bottom:12px">
         <label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">🕗 সময়:</label>
-        <input type="time" id="reminderTime" value="08:00" style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6ecf8;font-size:14px;box-sizing:border-box" onchange="updatePreview()"/>
+        <input type="time" id="reminderTime" value="08:00" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid #e6ecf8;font-size:14px;box-sizing:border-box" onchange="updatePreview()"/>
       </div>
 
-      <!-- Preview -->
       <div id="reminderPreview" style="display:none;font-size:13px;color:var(--accent);font-weight:600;margin-bottom:12px;background:#eff6ff;padding:10px 12px;border-radius:8px"></div>
 
       <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
@@ -639,85 +626,97 @@ document.getElementById('detailReminderBtn').onclick=()=>{
   if(!c||!c.nextDate){toast('আগে Next Date সেট করুন');return;}
   document.getElementById('rci_party').textContent=`${c.party||'—'} (${c.caseNo||'—'})`;
   document.getElementById('rci_date').textContent=`Next Date: ${formatDisplayDate(c.nextDate)}`;
-  // Reset all quick options
   document.querySelectorAll('.reminder-opt').forEach(o=>o.classList.remove('selected'));
   document.getElementById('reminderPreview').style.display='none';
+  document.getElementById('customDateRow').style.display='none';
+  document.getElementById('reminderCustomDate').value='';
   selDays=null;
   const r=reminders[viewingId];
   if(r){
     document.getElementById('reminderTime').value=r.time||'08:00';
-    // Try to highlight matching quick button
     const opt=document.querySelector(`.reminder-opt[data-days="${r.daysBefore}"]`);
     if(opt){opt.classList.add('selected'); selDays=r.daysBefore;}
-    // Show saved custom date
-    const savedDate=subtractDays(c.nextDate,r.daysBefore);
-    document.getElementById('reminderCustomDate').value=savedDate;
-    selDays=r.daysBefore;
+    else{
+      // was custom date
+      const customOpt=document.querySelector('.reminder-opt[data-days="-1"]');
+      if(customOpt) customOpt.classList.add('selected');
+      selDays=-1;
+      const savedDate=subtractDays(c.nextDate,r.daysBefore);
+      document.getElementById('reminderCustomDate').value=savedDate;
+      document.getElementById('customDateRow').style.display='block';
+    }
     document.getElementById('clearReminderBtn').style.display='inline-block';
     updatePreview();
   } else {
     document.getElementById('reminderTime').value='08:00';
-    document.getElementById('reminderCustomDate').value='';
     document.getElementById('clearReminderBtn').style.display='none';
   }
   document.getElementById('detailOverlay').style.display='none';
   document.getElementById('reminderOverlay').style.display='flex';
 };
 
-// Quick button clicked — calculate date automatically from hearing date
-function selectQuick(days){
-  const c=cases.find(x=>x.id===viewingId); if(!c||!c.nextDate) return;
+function selectQuick(days, el){
   document.querySelectorAll('.reminder-opt').forEach(o=>o.classList.remove('selected'));
-  const opt=document.querySelector(`.reminder-opt[data-days="${days}"]`);
-  if(opt) opt.classList.add('selected');
+  el.classList.add('selected');
   selDays=days;
-  // Auto-fill the date input
-  const rd=subtractDays(c.nextDate,days);
-  document.getElementById('reminderCustomDate').value=rd;
-  updatePreview();
+  if(days===-1){
+    document.getElementById('customDateRow').style.display='block';
+    document.getElementById('reminderCustomDate').value='';
+    document.getElementById('reminderPreview').style.display='none';
+  } else {
+    document.getElementById('customDateRow').style.display='none';
+    updatePreview();
+  }
 }
 
-// Custom date picked manually — calculate daysBefore from hearing date
 function onCustomDateChange(){
   const c=cases.find(x=>x.id===viewingId); if(!c||!c.nextDate) return;
   const picked=document.getElementById('reminderCustomDate').value;
   if(!picked) return;
-  // Clear quick button highlights
-  document.querySelectorAll('.reminder-opt').forEach(o=>o.classList.remove('selected'));
-  // Calculate days difference
   const hearingDate=new Date(c.nextDate+'T00:00:00');
   const reminderDate=new Date(picked+'T00:00:00');
   const diff=Math.round((hearingDate-reminderDate)/(1000*60*60*24));
   selDays=diff>=0?diff:0;
-  // Highlight quick button if matches
-  const opt=document.querySelector(`.reminder-opt[data-days="${selDays}"]`);
-  if(opt) opt.classList.add('selected');
   updatePreview();
 }
 
 function updatePreview(){
   const c=cases.find(x=>x.id===viewingId); if(!c||!c.nextDate) return;
-  const picked=document.getElementById('reminderCustomDate').value;
-  if(!picked) return;
   const t=document.getElementById('reminderTime').value||'08:00';
-  const lbl=selDays===0?'Hearing এর দিন':`Hearing এর ${selDays} দিন আগে`;
+  let rd, lbl;
+  if(selDays===-1||selDays===null){
+    rd=document.getElementById('reminderCustomDate').value;
+    if(!rd) return;
+    const diff=Math.round((new Date(c.nextDate+'T00:00:00')-new Date(rd+'T00:00:00'))/(1000*60*60*24));
+    lbl=diff===0?'Hearing এর দিন':`Hearing এর ${diff} দিন আগে`;
+  } else {
+    rd=subtractDays(c.nextDate,selDays);
+    lbl=selDays===0?'Hearing এর দিন':`Hearing এর ${selDays} দিন আগে`;
+  }
   const prev=document.getElementById('reminderPreview');
-  prev.textContent=`✅ ${lbl} — ${formatDisplayDate(picked)} @ ${t}`;
+  prev.textContent=`✅ ${lbl} — ${formatDisplayDate(rd)} @ ${t}`;
   prev.style.display='block';
 }
 
 function saveReminder(){
-  const picked=document.getElementById('reminderCustomDate').value;
-  if(!picked){toast('Date select করুন');return;}
-  if(selDays===null){toast('Date select করুন');return;}
+  const c=cases.find(x=>x.id===viewingId); if(!c||!c.nextDate) return;
+  if(selDays===null){toast('আগে কতদিন আগে তা select করুন');return;}
+  let finalDays=selDays;
+  if(selDays===-1){
+    const picked=document.getElementById('reminderCustomDate').value;
+    if(!picked){toast('Date select করুন');return;}
+    const diff=Math.round((new Date(c.nextDate+'T00:00:00')-new Date(picked+'T00:00:00'))/(1000*60*60*24));
+    finalDays=diff>=0?diff:0;
+  }
   const t=document.getElementById('reminderTime').value||'08:00';
-  reminders[viewingId]={daysBefore:selDays,time:t,triggered:null}; saveRem();
+  reminders[viewingId]={daysBefore:finalDays,time:t,triggered:null}; saveRem();
   document.getElementById('reminderOverlay').style.display='none';
   toast('✅ Reminder সেভ হয়েছে!'); render(); openDetails(viewingId);
   scheduleUpcomingAlarms();
   sendToSW();
   if('Notification' in window && Notification.permission==='default') requestNotif();
 }
+
 function clearReminder(){
   delete reminders[viewingId]; saveRem();
   document.getElementById('reminderOverlay').style.display='none';
