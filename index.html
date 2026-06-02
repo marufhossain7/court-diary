@@ -206,12 +206,12 @@
 
       <div id="customDateRow" style="display:none;margin-bottom:12px">
         <label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">📅 Calendar থেকে Date বেছে নিন:</label>
-        <input type="date" id="reminderCustomDate" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid #e6ecf8;font-size:14px;box-sizing:border-box" onchange="onCustomDateChange()"/>
+        <input type="date" id="reminderCustomDate" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid #e6ecf8;font-size:14px;box-sizing:border-box" oninput="onCustomDateChange()" onchange="onCustomDateChange()"/>
       </div>
 
       <div style="margin-bottom:12px">
         <label style="font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:5px">🕗 সময়:</label>
-        <input type="time" id="reminderTime" value="08:00" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid #e6ecf8;font-size:14px;box-sizing:border-box" onchange="updatePreview()"/>
+        <input type="time" id="reminderTime" value="08:00" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid #e6ecf8;font-size:14px;box-sizing:border-box" oninput="updatePreview()" onchange="updatePreview()"/>
       </div>
 
       <div id="reminderPreview" style="display:none;font-size:13px;color:var(--accent);font-weight:600;margin-bottom:12px;background:#eff6ff;padding:10px 12px;border-radius:8px"></div>
@@ -696,28 +696,33 @@ function updatePreview(){
   prev.style.display='block';
 }
 
+function dateDiffDays(isoA, isoB){
+  // isoA - isoB in days, timezone-safe
+  const [ay,am,ad]=isoA.split('-').map(Number);
+  const [by,bm,bd]=isoB.split('-').map(Number);
+  return Math.round((new Date(ay,am-1,ad)-new Date(by,bm-1,bd))/(1000*60*60*24));
+}
+
 function saveReminder(){
   const c=cases.find(x=>x.id===viewingId); if(!c||!c.nextDate) return;
   if(selDays===null){toast('আগে option select করুন');return;}
   let finalDays;
   if(selDays===-1){
-    // Custom date mode
+    // Custom date mode — সরাসরি input থেকে নাও
     const picked=document.getElementById('reminderCustomDate').value;
     if(!picked){toast('Calendar থেকে date বেছে নিন');return;}
-    // timezone-safe: compare date strings directly
-    const [hy,hm,hd]=c.nextDate.split('-').map(Number);
-    const [ry,rm,rd2]=picked.split('-').map(Number);
-    const hDate=new Date(hy,hm-1,hd);
-    const rDate=new Date(ry,rm-1,rd2);
-    const diff=Math.round((hDate-rDate)/(1000*60*60*24));
-    finalDays=diff>=0?diff:0;
+    const diff=dateDiffDays(c.nextDate, picked);
+    finalDays=diff>0?diff:0;
+    // Debug toast — সমস্যা বুঝতে
+    toast(`hearing: ${c.nextDate} | picked: ${picked} | days: ${diff}`);
+    if(diff<0){toast('Reminder date hearing এর পরে — আগের date দিন');return;}
   } else {
     finalDays=selDays;
   }
   const t=document.getElementById('reminderTime').value||'08:00';
   reminders[viewingId]={daysBefore:finalDays,time:t,triggered:null}; saveRem();
   document.getElementById('reminderOverlay').style.display='none';
-  toast('✅ Reminder সেভ হয়েছে!'); render(); openDetails(viewingId);
+  toast('✅ Reminder সেভ হয়েছে! ('+finalDays+' দিন আগে)'); render(); openDetails(viewingId);
   scheduleUpcomingAlarms();
   sendToSW();
   if('Notification' in window && Notification.permission==='default') requestNotif();
