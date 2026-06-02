@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Maruf's Court Diary</title>
+  <title>Maruf's Court Diary — Case Scheduler</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
   <style>
@@ -682,7 +682,9 @@ function updatePreview(){
     // Custom mode — date input থেকে নাও
     rd=document.getElementById('reminderCustomDate').value;
     if(!rd) return;
-    const diff=Math.round((new Date(c.nextDate+'T00:00:00')-new Date(rd+'T00:00:00'))/(1000*60*60*24));
+    const [hy,hm,hd]=c.nextDate.split('-').map(Number);
+    const [ry,rm,rdd]=rd.split('-').map(Number);
+    const diff=Math.round((new Date(hy,hm-1,hd)-new Date(ry,rm-1,rdd))/(1000*60*60*24));
     lbl=diff<=0?'Hearing এর দিন':`Hearing এর ${diff} দিন আগে`;
   } else {
     // Quick mode — hearing date থেকে calculate করো
@@ -702,7 +704,12 @@ function saveReminder(){
     // Custom date mode
     const picked=document.getElementById('reminderCustomDate').value;
     if(!picked){toast('Calendar থেকে date বেছে নিন');return;}
-    const diff=Math.round((new Date(c.nextDate+'T00:00:00')-new Date(picked+'T00:00:00'))/(1000*60*60*24));
+    // timezone-safe: compare date strings directly
+    const [hy,hm,hd]=c.nextDate.split('-').map(Number);
+    const [ry,rm,rd2]=picked.split('-').map(Number);
+    const hDate=new Date(hy,hm-1,hd);
+    const rDate=new Date(ry,rm-1,rd2);
+    const diff=Math.round((hDate-rDate)/(1000*60*60*24));
     finalDays=diff>=0?diff:0;
   } else {
     finalDays=selDays;
