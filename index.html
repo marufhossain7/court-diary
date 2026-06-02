@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Maruf's Court Diary — Case Scheduler</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f5f7fa;
+      --header-bg:#1e293b;
+      --month-bg:#475569;
+      --card:#ffffff;
+      --text:#1e293b;
+      --muted:#64748b;
+      --accent:#2563eb;
+      --danger:#ef4444;
+      --success:#10b981;
+      --warning:#f59e0b;
+      --radius:12px;
+    }
+
+    html,body{height:100%;margin:0;font-family:'Roboto', system-ui, Arial;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+    header{display:flex;align-items:center;justify-content:space-between;background:var(--header-bg);color:#fff;padding:12px 16px;box-shadow:0 2px 6px rgba(0,0,0,0.12);}
+    header h1{margin:0;font-size:18px;font-weight:700}
+    
+    .settingsBtn{background:none;border:0;color:#fff;font-size:20px;cursor:pointer;padding:6px 10px;border-radius:8px}
+    .settingsMenu{position:fixed;left:12px;top:56px;background:var(--card);border-radius:10px;padding:8px;box-shadow:0 8px 30px rgba(0,0,0,0.15);display:none;z-index:1200;width:170px;flex-direction:column;}
+    .settingsMenu button{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--text);font-weight:500}
+    .settingsMenu button:hover{background:#f0f6ff;color:var(--accent)}
+
+    .container{max-width:620px;margin:18px auto;padding:0 14px 80px}
+    .search-bar{margin-bottom: 18px;}
+    #searchInput{width: 100%;padding: 10px 14px;border-radius: 8px;border: 1px solid #e6ecf8;font-size: 14px;box-sizing: border-box;}
+
+    .month-title{background:var(--month-bg);color:#fff;padding:10px 12px;border-radius:8px;font-weight:600;margin-top:18px;text-align:center; font-size: 15px;}
+
+    .case-card{background:var(--card);border-radius:12px;padding:14px;margin-top:12px;box-shadow:0 2px 8px rgba(10,20,30,0.06);position:relative;cursor:pointer;transition:transform .12s;}
+    .case-card.completed{opacity: 0.6; border-left: 5px solid var(--success); filter: grayscale(0.5);}
+    
+    .case-header{display:flex;justify-content:space-between;align-items:flex-start;}
+    .case-left{display:flex;flex-direction:column;}
+    .case-no-group {display: flex;align-items: center;}
+    .case-no{font-weight:700;font-size:15px;color:var(--text);margin-left: 6px;}
+    .party-icon {font-size: 16px; color: var(--accent); padding: 4px;border-radius: 50%;background: #e0eaff; width: 16px; height: 16px;display: flex;align-items: center;justify-content: center;}
+    .case-no-label{font-size:11px;color:var(--muted);margin-left: 30px;}
+    
+    .next-date{text-align:right; color:var(--accent); font-weight:900; font-size:15px; line-height: 1.1;}
+    .next-date small{display:block;font-size:11px;color:var(--muted);font-weight:500;margin-top:2px;}
+
+    .party-name{font-weight:700;text-align:center; font-size:16px;margin:10px 0 15px; color:var(--text);}
+    .court-stage{display:grid;grid-template-columns: 1fr 1fr;gap: 10px;font-size:13px;}
+    .court-stage .label { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 2px;}
+    .court-left{text-align: left;font-weight:600;}
+    .stage-right{text-align:right;font-weight:600;}
+
+    .fab{position:fixed;right:18px;bottom:28px;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:28px;box-shadow:0 10px 30px rgba(37,99,235,0.24);cursor:pointer;z-index:1100}
+
+    .overlay, .formOverlay{position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:1100}
+    .detailCard, .formCard{background:var(--card);border-radius:12px;padding:18px;width:92%;max-width:420px;box-shadow:0 20px 60px rgba(2,6,23,0.2)}
+    .detailRow{margin:8px 0;font-size:14px;}
+    .detailLabel{color:var(--muted);font-weight:600;margin-right:6px}
+    .detailButtons, .formActions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:15px}
+    
+    .btn{border:0;padding:8px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px}
+    .btn.primary{background:var(--accent);color:#fff}
+    .btn.alt{background:#f3f4f6;color:var(--text)}
+    .btn.danger{background:var(--danger);color:#fff}
+    .btn.success{background:var(--success);color:#fff}
+    .btn.warning{background:var(--warning);color:#fff}
+
+    .reminder-badge{text-align:right;font-size:14px;margin:-6px 0 4px}
+
+    .reminder-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+    .reminder-opt{border:2px solid #e6ecf8;border-radius:10px;padding:10px;text-align:center;cursor:pointer;transition:all .15s;font-size:13px;font-weight:600}
+    .reminder-opt:hover,.reminder-opt.selected{border-color:var(--accent);background:#eff6ff;color:var(--accent)}
+    .reminder-opt .emoji{font-size:20px;display:block;margin-bottom:4px}
+    .row2{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+    .row2 label{font-size:13px;color:var(--muted);white-space:nowrap;font-weight:500}
+    .row2 input{flex:1;padding:8px;border-radius:8px;border:1px solid #e6ecf8;font-size:14px}
+    #reminderPreview{font-size:13px;color:var(--accent);font-weight:600;margin-bottom:12px;background:#eff6ff;padding:8px 10px;border-radius:8px;display:none}
+
+    .rli{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;margin-bottom:8px;font-size:13px}
+    .rli .ri{flex:1}
+    .rli .rt{color:var(--warning);font-weight:700;font-size:12px}
+    .rli .rc{font-weight:600;color:var(--text)}
+    .rli .rd{border:0;background:none;color:var(--danger);font-size:16px;cursor:pointer;padding:2px 6px}
+    .no-rem{text-align:center;color:var(--muted);padding:24px;font-size:14px}
+
+    .reminderOverlay{position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:1100}
+    .reminderCard,.allRemCard{background:var(--card);border-radius:12px;padding:18px;width:92%;max-width:420px;box-shadow:0 20px 60px rgba(2,6,23,0.2)}
+    .allRemCard{max-height:80vh;overflow-y:auto}
+    .reminderCard h2{margin-top:0;font-size:17px}
+    .r-case-info{background:#f8faff;border-radius:8px;padding:10px;margin-bottom:14px;font-size:13px;color:var(--muted)}
+    .r-case-info strong{color:var(--text);display:block;margin-bottom:2px;font-size:14px}
+
+    .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.2);pointer-events:none}
+
+    /* notification banner */
+    #notifBanner{background:#e0f2fe;border:1px solid #7dd3fc;margin:12px 14px 0;border-radius:10px;padding:10px 14px;display:none;align-items:center;gap:8px;font-size:13px;box-sizing:border-box;max-width:592px;margin-left:auto;margin-right:auto}
+    #notifBanner span{flex:1;color:#0369a1;font-weight:500}
+    #notifBanner .allow{background:#0284c7;border:0;color:#fff;padding:5px 12px;border-radius:6px;font-weight:600;cursor:pointer;font-size:12px}
+    #notifBanner .dis{background:none;border:0;color:#64748b;cursor:pointer;font-size:16px}
+    #todayBanner{background:linear-gradient(135deg,#dc2626,#f59e0b);color:#fff;margin:8px 14px 0;border-radius:10px;padding:10px 14px;display:none;align-items:center;gap:8px;font-size:13px;font-weight:600;box-sizing:border-box;max-width:592px;margin-left:auto;margin-right:auto}
+    #todayBanner span{flex:1}
+    #todayBanner button{background:rgba(255,255,255,0.25);border:0;color:#fff;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700}
+
+    .formField{display:flex;flex-direction:column;margin-bottom:10px}
+    .formField label{font-size:13px;color:var(--muted);margin-bottom:4px}
+    .formField input, .formField textarea{padding:10px;border-radius:8px;border:1px solid #e6ecf8;font-size:14px}
+  </style>
+</head>
+<body>
+
+  <header>
+    <button class="settingsBtn" id="settingsBtn">☰</button>
+    <h1>Maruf's Court Diary</h1>
+    <div style="width:44px"></div>
+  </header>
+
+  <div class="settingsMenu" id="settingsMenu">
+    <button id="exportBtn">📤 Export Backup</button>
+    <button id="importBtn">📥 Import Backup</button>
+    <button id="viewRemindersBtn">🔔 All Reminders</button>
+    <input id="importFile" type="file" accept=".json" style="display:none" />
+  </div>
+
+  <div id="notifBanner">
+    <span>🔔 Notification Allow করুন — reminder পেতে এটা জরুরি</span>
+    <button class="allow" onclick="requestNotif()">Allow করুন</button>
+    <button class="dis" onclick="dismissNotif()">✕</button>
+  </div>
+  <div id="swBanner" style="background:#fef3c7;border:1px solid #fbbf24;margin:6px 14px 0;border-radius:10px;padding:10px 14px;display:none;align-items:center;gap:8px;font-size:13px;box-sizing:border-box;max-width:592px;margin-left:auto;margin-right:auto">
+    <span style="flex:1;color:#92400e;font-weight:500">⚠️ Reminder ঠিকমতো কাজ করতে এই file টি একটি web server থেকে open করতে হবে (file:// দিয়ে নয়)</span>
+    <button style="background:none;border:0;color:#64748b;cursor:pointer;font-size:16px" onclick="this.parentElement.style.display='none'">✕</button>
+  </div>
+  <div id="todayBanner">
+    <span id="todayBannerText"></span>
+    <button onclick="document.getElementById('todayBanner').style.display='none'">✕</button>
+  </div>
+
+  <main class="container">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search by Case No., Party, or Court..." />
+    </div>
+    <div id="container"></div>
+  </main>
+
+  <div class="fab" id="addBtn">＋</div>
+
+  <div class="overlay" id="detailOverlay">
+    <div class="detailCard">
+      <h2 id="detailParty" style="margin-top:0">Party</h2>
+      <div class="detailRow"><span class="detailLabel">Case No:</span><span id="detailCaseNo"></span></div>
+      <div class="detailRow"><span class="detailLabel">Court:</span><span id="detailCourt"></span></div>
+      <div class="detailRow"><span class="detailLabel">Stage:</span><span id="detailStage"></span></div>
+      <div class="detailRow"><span class="detailLabel">Next Date:</span><span id="detailNext"></span></div>
+      <div class="detailRow"><span class="detailLabel">Last Date:</span><span id="detailLast">N/A</span></div> 
+      <div class="detailRow"><span class="detailLabel">Notes:</span><div id="detailNotes" style="margin-top:4px"></div></div>
+      <div class="detailRow" id="detailReminderRow" style="display:none"><span class="detailLabel">⏰ Reminder:</span><span id="detailReminderInfo" style="color:var(--warning);font-weight:600"></span></div>
+
+      <div class="detailButtons">
+        <button class="btn alt" id="detailCloseBtn">Close</button>
+        <button class="btn success" id="detailCompleteBtn">Complete/Active</button>
+        <button class="btn warning" id="detailReminderBtn">⏰ Reminder</button>
+        <button class="btn primary" id="detailUpdateBtn">Next Date</button>
+        <button class="btn alt" id="detailEditBtn">Edit</button>
+        <button class="btn danger" id="detailDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="formOverlay" id="formOverlay">
+    <div class="formCard">
+      <h2 id="formTitle">Add Case</h2>
+      <div class="formField"><label>Case No.</label><input id="f_caseNo" type="text" /></div>
+      <div class="formField"><label>Party / Title</label><input id="f_party" type="text" /></div>
+      <div class="formField"><label>Court Name</label><input id="f_court" type="text" /></div>
+      <div class="formField"><label>Stage</label><input id="f_stage" type="text" /></div>
+      <div class="formField"><label>Next Hearing Date</label><input id="f_date" type="date" /></div>
+      <div class="formField"><label>Notes</label><textarea id="f_notes" rows="3"></textarea></div>
+      <div class="formActions">
+        <button class="btn alt" id="formCancel">Cancel</button>
+        <button class="btn primary" id="formSave">Save Case</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reminder Set Overlay -->
+  <div class="reminderOverlay" id="reminderOverlay">
+    <div class="reminderCard">
+      <h2>⏰ Reminder সেট করুন</h2>
+      <div class="r-case-info">
+        <strong id="rci_party"></strong>
+        <span id="rci_date"></span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;font-weight:500">কতদিন আগে reminder চান?</div>
+      <div class="reminder-options">
+        <div class="reminder-opt" data-days="0" onclick="selectOpt(this)"><span class="emoji">📅</span>Same Day</div>
+        <div class="reminder-opt" data-days="1" onclick="selectOpt(this)"><span class="emoji">🌙</span>1 Day Before</div>
+        <div class="reminder-opt" data-days="2" onclick="selectOpt(this)"><span class="emoji">📆</span>2 Days Before</div>
+        <div class="reminder-opt" data-days="3" onclick="selectOpt(this)"><span class="emoji">🗓️</span>3 Days Before</div>
+        <div class="reminder-opt" data-days="7" onclick="selectOpt(this)"><span class="emoji">📋</span>1 Week Before</div>
+        <div class="reminder-opt" data-days="-1" onclick="selectOpt(this)"><span class="emoji">⚙️</span>Custom</div>
+      </div>
+      <div id="customRow" style="display:none" class="row2">
+        <label>কতদিন আগে:</label>
+        <input type="number" id="customDays" min="0" max="60" placeholder="0" style="width:70px" oninput="updatePreview()"/>
+        <span style="font-size:13px;color:var(--muted)">দিন আগে</span>
+      </div>
+      <div class="row2">
+        <label>কোন সময়ে:</label>
+        <input type="time" id="reminderTime" value="08:00" onchange="updatePreview()"/>
+      </div>
+      <div id="reminderPreview"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+        <button class="btn alt" onclick="document.getElementById('reminderOverlay').style.display='none'">Cancel</button>
+        <button class="btn danger" id="clearReminderBtn" style="display:none" onclick="clearReminder()">🗑 Remove</button>
+        <button class="btn warning" onclick="saveReminder()">💾 Save Reminder</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- All Reminders Overlay -->
+  <div class="reminderOverlay" id="allRemOverlay">
+    <div class="allRemCard">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <h2 style="margin:0">🔔 সব Reminders</h2>
+        <button class="btn alt" onclick="document.getElementById('allRemOverlay').style.display='none'">✕</button>
+      </div>
+      <div id="allRemList"></div>
+    </div>
+  </div>
+
+<script>
+const STORAGE_KEY = 'maruf_cases_v2';
+const REM_KEY = 'maruf_reminders_v1';
+let cases = [];
+let reminders = {};
+let viewingId = null;
+let editingId = null;
+let selDays = null;
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+
+function loadAll(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  cases = raw ? JSON.parse(raw) : [];
+  const rRaw = localStorage.getItem(REM_KEY);
+  reminders = rRaw ? JSON.parse(rRaw) : {};
+}
+function saveAll(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(cases)); }
+function saveRem(){ localStorage.setItem(REM_KEY, JSON.stringify(reminders)); }
+
+function formatDisplayDate(iso){
+  if(!iso) return '—';
+  const d = new Date(iso + 'T00:00:00');
+  return isNaN(d) ? iso : d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+// Grouping by Date/Month properly
+function groupByMonth(arr) {
+  const groups = {};
+  arr.forEach(c => {
+    const d = c.nextDate ? new Date(c.nextDate + 'T00:00:00') : null;
+    const sortKey = c.completed ? '9999-99' : (d ? d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') : '8888-88');
+    const displayMonth = c.completed ? 'Completed Cases' : (d ? d.toLocaleString('default', { month: 'long', year: 'numeric' }) : 'No Next Date');
+    
+    if (!groups[sortKey]) groups[sortKey] = { title: displayMonth, items: [] };
+    groups[sortKey].items.push(c);
+  });
+  return groups;
+}
+
+function render(){
+  const container = document.getElementById('container');
+  container.innerHTML = '';
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+  
+  let filtered = cases.filter(c => 
+    !searchTerm || 
+    (c.caseNo||'').toLowerCase().includes(searchTerm) || 
+    (c.party||'').toLowerCase().includes(searchTerm) || 
+    (c.court||'').toLowerCase().includes(searchTerm)
+  );
+
+  // Sorting: Completed goes last, Active cases sort by Date (Recent first)
+  filtered.sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    if (!a.nextDate && !b.nextDate) return 0;
+    if (!a.nextDate) return 1;
+    if (!b.nextDate) return -1;
+    return new Date(a.nextDate + 'T00:00:00') - new Date(b.nextDate + 'T00:00:00');
+  });
+
+  const groups = groupByMonth(filtered);
+  const sortedKeys = Object.keys(groups).sort();
+
+  sortedKeys.forEach(key => {
+    const group = groups[key];
+    const header = document.createElement('div');
+    header.className = 'month-title';
+    header.textContent = group.title;
+    container.appendChild(header);
+
+    group.items.forEach(c => {
+      const card = document.createElement('div');
+      card.className = `case-card ${c.completed ? 'completed' : ''}`;
+      card.innerHTML = `
+        <div class="case-header">
+          <div class="case-left">
+            <div class="case-no-group">
+              <div class="party-icon">⚖</div>
+              <div class="case-no">${escapeHtml(c.caseNo || '—')}</div>
+            </div>
+            <div class="case-no-label">Case No.</div>
+          </div>
+          <div class="next-date">${formatDisplayDate(c.nextDate)}<small>Next Date</small></div>
+        </div>
+        <div class="party-name">${escapeHtml(c.party || '—')}</div>
+        ${reminders[c.id] ? '<div class="reminder-badge" style="text-align:right">⏰</div>' : ''}
+        <div class="court-stage">
+          <div class="court-left"><div class="label">Court</div>${escapeHtml(c.court || '—')}</div>
+          <div class="stage-right"><div class="label">Stage</div>${escapeHtml(c.stage || '—')}</div>
+        </div>
+      `;
+      card.onclick = () => openDetails(c.id);
+      container.appendChild(card);
+    });
+  });
+}
+
+function escapeHtml(s){ return s ? String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#039;"}[m])) : ''; }
+
+function openDetails(id){
+  const c = cases.find(x=>x.id===id);
+  if(!c) return;
+  viewingId = id;
+  document.getElementById('detailParty').textContent = c.party || '—';
+  document.getElementById('detailCaseNo').textContent = c.caseNo || '—';
+  document.getElementById('detailCourt').textContent = c.court || '—';
+  document.getElementById('detailStage').textContent = c.stage || '—';
+  document.getElementById('detailNext').textContent = formatDisplayDate(c.nextDate);
+  document.getElementById('detailLast').textContent = formatDisplayDate(c.lastDate);
+  document.getElementById('detailNotes').textContent = c.notes || '—';
+  const r = reminders[id];
+  const rRow = document.getElementById('detailReminderRow');
+  if(r && c.nextDate){
+    const rd = subtractDays(c.nextDate, r.daysBefore);
+    const lbl = r.daysBefore===0 ? 'Same Day' : `${r.daysBefore} day(s) before`;
+    document.getElementById('detailReminderInfo').textContent = `${lbl} @ ${r.time} (${formatDisplayDate(rd)})`;
+    rRow.style.display = 'block';
+    document.getElementById('detailReminderBtn').textContent = '⏰ Edit Reminder';
+  } else {
+    rRow.style.display = 'none';
+    document.getElementById('detailReminderBtn').textContent = '⏰ Set Reminder';
+  }
+  document.getElementById('detailOverlay').style.display = 'flex';
+}
+
+// Complete Button Logic
+document.getElementById('detailCompleteBtn').onclick = () => {
+  const c = cases.find(x=>x.id===viewingId);
+  if(c) {
+    c.completed = !c.completed;
+    saveAll(); render();
+    document.getElementById('detailOverlay').style.display = 'none';
+  }
+};
+
+document.getElementById('detailUpdateBtn').onclick = () => {
+  const c = cases.find(x => x.id === viewingId);
+  if (!c) return;
+
+  const tempInput = document.createElement('input');
+  tempInput.type = 'date';
+  tempInput.value = c.nextDate || "";
+  
+  // ক্যালেন্ডার ওপেন করার ট্রিগার
+  tempInput.onchange = (e) => {
+    const next = e.target.value;
+    if (next) {
+      c.lastDate = c.nextDate;
+      c.nextDate = next;
+      if(reminders[c.id]) reminders[c.id].triggered = null;
+      saveAll(); saveRem();
+      render();
+      document.getElementById('detailOverlay').style.display = 'none';
+    }
+  };
+
+  // মোবাইল বা পিসি ব্রাউজারে ক্যালেন্ডার দেখানোর কমান্ড
+  tempInput.showPicker ? tempInput.showPicker() : tempInput.click();
+};
+
+document.getElementById('detailDeleteBtn').onclick = () => {
+  if(confirm("Delete Case?")) {
+    cases = cases.filter(x=>x.id!==viewingId);
+    delete reminders[viewingId];
+    saveAll(); saveRem(); render();
+    document.getElementById('detailOverlay').style.display = 'none';
+  }
+};
+
+document.getElementById('addBtn').onclick = () => {
+  editingId = null;
+  document.getElementById('formTitle').textContent = "Add New Case";
+  ['f_caseNo','f_party','f_court','f_stage','f_date','f_notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('formOverlay').style.display = 'flex';
+};
+
+document.getElementById('formSave').onclick = () => {
+  const data = {
+    caseNo: document.getElementById('f_caseNo').value,
+    party: document.getElementById('f_party').value,
+    court: document.getElementById('f_court').value,
+    stage: document.getElementById('f_stage').value,
+    nextDate: document.getElementById('f_date').value,
+    notes: document.getElementById('f_notes').value
+  };
+  if(editingId) {
+    const i = cases.findIndex(x=>x.id===editingId);
+    cases[i] = {...cases[i], ...data};
+  } else {
+    cases.push({...data, id: uid(), completed: false, lastDate: null});
+  }
+  saveAll(); render();
+  document.getElementById('formOverlay').style.display = 'none';
+};
+
+document.getElementById('detailEditBtn').onclick = () => {
+  const c = cases.find(x=>x.id===viewingId);
+  editingId = viewingId;
+  document.getElementById('formTitle').textContent = "Edit Case";
+  document.getElementById('f_caseNo').value = c.caseNo;
+  document.getElementById('f_party').value = c.party;
+  document.getElementById('f_court').value = c.court;
+  document.getElementById('f_stage').value = c.stage;
+  document.getElementById('f_date').value = c.nextDate;
+  document.getElementById('f_notes').value = c.notes;
+  document.getElementById('detailOverlay').style.display = 'none';
+  document.getElementById('formOverlay').style.display = 'flex';
+};
+
+// Modals close logic
+[document.getElementById('detailOverlay'), document.getElementById('formOverlay')].forEach(el => {
+  el.onclick = (e) => { if(e.target === el) el.style.display = 'none'; }
+});
+document.getElementById('detailCloseBtn').onclick = () => document.getElementById('detailOverlay').style.display = 'none';
+document.getElementById('formCancel').onclick = () => document.getElementById('formOverlay').style.display = 'none';
+
+// Settings & Backup
+document.getElementById('settingsBtn').onclick = (e) => {
+  e.stopPropagation();
+  const m = document.getElementById('settingsMenu');
+  m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
+};
+window.onclick = () => document.getElementById('settingsMenu').style.display = 'none';
+
+document.getElementById('exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify({cases, reminders})], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `court_diary_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+};
+
+document.getElementById('importBtn').onclick = () => document.getElementById('importFile').click();
+document.getElementById('importFile').onchange = (e) => {
+  const file = e.target.files[0];
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const d = JSON.parse(reader.result);
+      if(Array.isArray(d)){ cases = d; } 
+      else { cases = d.cases || []; reminders = d.reminders || {}; }
+      saveAll(); saveRem(); render();
+      alert("Import Success!");
+    } catch(e){ alert("Import failed: invalid file"); }
+  };
+  reader.readAsText(file);
+};
+
+document.getElementById('searchInput').oninput = render;
+
+// ── Helper ────────────────────────────────────────────
+function todayISO(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function subtractDays(iso, days){
+  const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()-days);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function toast(msg){
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .4s';setTimeout(()=>t.remove(),400);},2200);
+}
+
+// ── Notification ──────────────────────────────────────
+function requestNotif(){
+  if(!('Notification' in window)){toast('এই browser notification support করে না');return;}
+  // Must be triggered by user gesture
+  Notification.requestPermission().then(p=>{
+    document.getElementById('notifBanner').style.display='none';
+    localStorage.setItem('notif_dismissed','1');
+    if(p==='granted'){
+      toast('✅ Notification চালু হয়েছে!');
+      // Register periodic sync if supported
+      if('serviceWorker' in navigator && 'periodicSync' in ServiceWorkerRegistration.prototype){
+        navigator.serviceWorker.ready.then(reg=>{
+          reg.periodicSync.register('court-reminder-check',{minInterval:60*60*1000}).catch(()=>{});
+        });
+      }
+      // Send current data to SW for immediate check
+      sendToSW();
+      // Schedule alarms for today/tomorrow
+      scheduleUpcomingAlarms();
+    } else {
+      toast('⚠️ Settings থেকে Notification allow করুন');
+    }
+  });
+}
+function dismissNotif(){
+  localStorage.setItem('notif_dismissed','1');
+  document.getElementById('notifBanner').style.display='none';
+}
+function showNotifPrompt(){
+  if(!('Notification' in window)) return;
+  // Always show if not granted/dismissed
+  if(Notification.permission==='granted') return;
+  if(localStorage.getItem('notif_dismissed') && Notification.permission==='denied') return;
+  // Reset dismissed if permission is still default (user may have cleared settings)
+  if(Notification.permission==='default'){
+    document.getElementById('notifBanner').style.display='flex';
+  }
+}
+
+// Send data to service worker for background reminder check
+function sendToSW(){
+  if(!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.ready.then(reg=>{
+    if(reg.active){
+      reg.active.postMessage({type:'CHECK_REMINDERS', cases, reminders});
+    }
+  });
+}
+
+// Schedule alarms for reminders due within next 24 hours
+function scheduleUpcomingAlarms(){
+  if(!('serviceWorker' in navigator)) return;
+  const today=todayISO();
+  const tomorrow=subtractDays(today,-1);
+  navigator.serviceWorker.ready.then(reg=>{
+    cases.forEach(c=>{
+      if(c.completed||!c.nextDate) return;
+      const r=reminders[c.id]; if(!r) return;
+      const rd=subtractDays(c.nextDate,r.daysBefore);
+      if(rd===today||rd===tomorrow){
+        reg.active && reg.active.postMessage({
+          type:'SCHEDULE_ALARM',
+          caseId:c.id, party:c.party, caseNo:c.caseNo,
+          court:c.court, triggerISO:rd, time:r.time||'08:00',
+          daysBefore:r.daysBefore
+        });
+      }
+    });
+  });
+}
+
+function checkAndNotify(){
+  const today=todayISO(); const todayCases=[];
+  let changed=false;
+  cases.forEach(c=>{
+    if(c.completed||!c.nextDate) return;
+    if(c.nextDate===today) todayCases.push(c);
+    const r=reminders[c.id]; if(!r) return;
+    const rd=subtractDays(c.nextDate,r.daysBefore);
+
+    // Reset trigger if date has passed
+    if(r.triggered && r.triggered<today){reminders[c.id].triggered=null; changed=true;}
+
+    if(rd===today && r.triggered!==today){
+      reminders[c.id].triggered=today; changed=true;
+      const lbl=r.daysBefore===0?'আজ hearing আছে!':`${r.daysBefore} দিন পরে hearing আছে`;
+      if(Notification.permission==='granted'){
+        if('serviceWorker' in navigator){
+          navigator.serviceWorker.ready.then(reg=>{
+            if(reg.active){
+              reg.active.postMessage({type:'CHECK_REMINDERS', cases, reminders});
+            } else {
+              // Fallback
+              reg.showNotification('⚖️ Court Reminder',{
+                body:`${c.party||c.caseNo} — ${lbl}\nCourt: ${c.court||'—'}`,
+                vibrate:[300,100,300],tag:'rem-'+c.id,requireInteraction:true,
+                icon:'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
+              });
+            }
+          });
+        } else {
+          new Notification('⚖️ Court Reminder',{
+            body:`${c.party||c.caseNo} — ${lbl}`,
+            icon:'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
+          });
+        }
+      }
+    }
+  });
+  if(changed) saveRem();
+
+  if(todayCases.length){
+    const names=todayCases.slice(0,2).map(c=>c.party||c.caseNo).join(', ');
+    const extra=todayCases.length>2?` ও আরও ${todayCases.length-2}টি`:'';
+    document.getElementById('todayBannerText').textContent=`🔴 আজকের hearing: ${names}${extra}`;
+    document.getElementById('todayBanner').style.display='flex';
+  }
+}
+
+// ── Reminder modal ────────────────────────────────────
+document.getElementById('detailReminderBtn').onclick=()=>{
+  const c=cases.find(x=>x.id===viewingId);
+  if(!c||!c.nextDate){toast('আগে Next Date সেট করুন');return;}
+  document.getElementById('rci_party').textContent=`${c.party||'—'} (${c.caseNo||'—'})`;
+  document.getElementById('rci_date').textContent=`Next Date: ${formatDisplayDate(c.nextDate)}`;
+  document.querySelectorAll('.reminder-opt').forEach(o=>o.classList.remove('selected'));
+  document.getElementById('customRow').style.display='none';
+  document.getElementById('reminderPreview').style.display='none';
+  selDays=null;
+  const r=reminders[viewingId];
+  if(r){
+    document.getElementById('reminderTime').value=r.time||'08:00';
+    const opt=document.querySelector(`.reminder-opt[data-days="${r.daysBefore}"]`);
+    if(opt){opt.classList.add('selected');selDays=r.daysBefore;}
+    else{document.querySelector('.reminder-opt[data-days="-1"]').classList.add('selected');document.getElementById('customRow').style.display='flex';document.getElementById('customDays').value=r.daysBefore;selDays=-1;}
+    document.getElementById('clearReminderBtn').style.display='inline-block';
+    updatePreview();
+  } else {
+    document.getElementById('reminderTime').value='08:00';
+    document.getElementById('clearReminderBtn').style.display='none';
+  }
+  document.getElementById('detailOverlay').style.display='none';
+  document.getElementById('reminderOverlay').style.display='flex';
+};
+function selectOpt(el){
+  document.querySelectorAll('.reminder-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected'); selDays=parseInt(el.dataset.days);
+  document.getElementById('customRow').style.display=selDays===-1?'flex':'none';
+  updatePreview();
+}
+function updatePreview(){
+  const c=cases.find(x=>x.id===viewingId); if(!c||!c.nextDate) return;
+  let d=selDays; if(d===-1) d=parseInt(document.getElementById('customDays').value)||0;
+  if(d===null||isNaN(d)) return;
+  const rd=subtractDays(c.nextDate,d);
+  const t=document.getElementById('reminderTime').value||'08:00';
+  const lbl=d===0?'Hearing এর দিন':`Hearing এর ${d} দিন আগে`;
+  const prev=document.getElementById('reminderPreview');
+  prev.textContent=`📅 ${lbl} — ${formatDisplayDate(rd)} @ ${t}`;
+  prev.style.display='block';
+}
+function saveReminder(){
+  let d=selDays; if(d===null){toast('কতদিন আগে তা select করুন');return;}
+  if(d===-1) d=parseInt(document.getElementById('customDays').value);
+  if(isNaN(d)||d<0){toast('সঠিক দিন দিন');return;}
+  const t=document.getElementById('reminderTime').value||'08:00';
+  reminders[viewingId]={daysBefore:d,time:t,triggered:null}; saveRem();
+  document.getElementById('reminderOverlay').style.display='none';
+  toast('✅ Reminder সেভ হয়েছে!'); render(); openDetails(viewingId);
+  // Schedule alarm immediately
+  scheduleUpcomingAlarms();
+  sendToSW();
+  if('Notification' in window && Notification.permission==='default') requestNotif();
+}
+function clearReminder(){
+  delete reminders[viewingId]; saveRem();
+  document.getElementById('reminderOverlay').style.display='none';
+  toast('Reminder মুছে ফেলা হয়েছে'); render(); openDetails(viewingId);
+}
+
+// ── All Reminders ─────────────────────────────────────
+function openAllRem(){
+  const list=document.getElementById('allRemList'); list.innerHTML='';
+  const ids=Object.keys(reminders);
+  if(!ids.length){list.innerHTML='<div class="no-rem">কোনো reminder সেট নেই<br><small>Case খুলে ⏰ বাটন চাপুন</small></div>';}
+  else{
+    ids.map(id=>{
+      const c=cases.find(x=>x.id===id); const r=reminders[id]; if(!c) return null;
+      return {id,c,r,rd:c.nextDate?subtractDays(c.nextDate,r.daysBefore):null};
+    }).filter(Boolean).sort((a,b)=>(a.rd||'').localeCompare(b.rd||'')).forEach(({id,c,r,rd})=>{
+      const el=document.createElement('div'); el.className='rli';
+      const lbl=r.daysBefore===0?'Same Day':`${r.daysBefore} day(s) before`;
+      el.innerHTML=`<div style="font-size:20px">⏰</div>
+        <div class="ri"><div class="rc">${escapeHtml(c.party||'—')} <span style="color:var(--muted);font-weight:400">(${escapeHtml(c.caseNo||'—')})</span></div>
+        <div class="rt">${lbl} @ ${r.time} — Alert: ${formatDisplayDate(rd)}</div>
+        <div style="font-size:12px;color:var(--muted)">Hearing: ${formatDisplayDate(c.nextDate)}</div></div>
+        <button class="rd" onclick="delRem('${id}')">🗑</button>`;
+      list.appendChild(el);
+    });
+  }
+  document.getElementById('settingsMenu').style.display='none';
+  document.getElementById('allRemOverlay').style.display='flex';
+}
+function delRem(id){delete reminders[id];saveRem();openAllRem();render();}
+document.getElementById('viewRemindersBtn').onclick=openAllRem;
+
+// Reminder overlay close
+document.getElementById('reminderOverlay').onclick=e=>{if(e.target===document.getElementById('reminderOverlay')) document.getElementById('reminderOverlay').style.display='none';};
+document.getElementById('allRemOverlay').onclick=e=>{if(e.target===document.getElementById('allRemOverlay')) document.getElementById('allRemOverlay').style.display='none';};
+
+// Service worker registration
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').then(reg=>{
+    // Listen for SW messages (e.g. TRIGGER_CHECK)
+    navigator.serviceWorker.addEventListener('message', e=>{
+      if(e.data && e.data.type==='TRIGGER_CHECK') checkAndNotify();
+    });
+    // If already granted, send data right away
+    if(Notification.permission==='granted'){
+      sendToSW();
+      scheduleUpcomingAlarms();
+    }
+  }).catch(err=>{
+    // file:// protocol warning
+    if(location.protocol==='file:'){
+      document.getElementById('swBanner').style.display='flex';
+    }
+  });
+} else if(location.protocol==='file:'){
+  document.getElementById('swBanner').style.display='flex';
+}
+
+// Init
+loadAll();
+render();
+checkAndNotify();
+showNotifPrompt();
+// Check every hour when page is open
+setInterval(()=>{checkAndNotify(); scheduleUpcomingAlarms(); sendToSW();}, 60*60*1000);
+// Check on visibility (app comes back to foreground)
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){
+    checkAndNotify();
+    scheduleUpcomingAlarms();
+    sendToSW();
+  }
+});
+// Check at midnight rollover
+function scheduleMidnightCheck(){
+  const now=new Date();
+  const midnight=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,0,0,5);
+  setTimeout(()=>{checkAndNotify();sendToSW();scheduleMidnightCheck();},midnight-now);
+}
+scheduleMidnightCheck();
+</script>
+</body>
+</html>
